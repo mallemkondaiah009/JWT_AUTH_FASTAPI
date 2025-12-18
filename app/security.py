@@ -27,3 +27,4 @@ def create_access_token(data: dict):
         {'exp': expire}
     )
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
