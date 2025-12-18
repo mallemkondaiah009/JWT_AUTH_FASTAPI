@@ -13,6 +13,7 @@ from app.crud import get_user_by_email
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 import os
+from sqlalchemy.ext.asyncio import AsyncSession
 
 load_dotenv()
 
@@ -24,16 +25,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 router = APIRouter(prefix='/api/auth')
 
 @router.post('/register', response_model=UserResponse)
-def UserRegisteration(user: UserCreate, db: Session = Depends(get_db)):
-    return create_user(db, user)
+async def UserRegisteration(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    return await create_user(db, user)
 
 @router.get('/users', response_model=list[UserResponse])
-def AllUsers(db: Session = Depends(get_db)):
-    return get_users(db)
+async def AllUsers(db: AsyncSession = Depends(get_db)):
+    return await get_users(db)
 
 @router.post("/login", response_model=TokenResponse)
-def UserLogin(user: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    db_user = get_user_by_email(db, user.email)
+async def UserLogin(user: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    db_user = await get_user_by_email(db, user.email)
 
     if not db_user:
         raise HTTPException(
@@ -73,12 +74,12 @@ def UserLogin(user: LoginRequest, response: Response, db: Session = Depends(get_
 
 
 @router.get("/user/me", response_model = UserResponse)
-def get_me(current_user = Depends(get_current_user)):
+async def get_me(current_user = Depends(get_current_user)):
     return current_user
 
 
 @router.post("/refresh")
-def refresh_token_reload(request: Request, response: Response, db: Session = Depends(get_db)):
+async def refresh_token_reload(request: Request, response: Response, db: Session = Depends(get_db)):
     token = request.cookies.get("refresh_token")
     if not token:
         raise HTTPException(status_code=401, detail="No refresh token found")
