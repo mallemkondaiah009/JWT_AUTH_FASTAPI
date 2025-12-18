@@ -1,10 +1,13 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
 from app.models import User
 from app.schemas import UserCreate
 from app.security import hash_password
 
 
-def create_user(db:Session, user:UserCreate):
+
+async def create_user(db:AsyncSession, user:UserCreate):
     hashed_pwd = hash_password(user.password)
 
     user = User(
@@ -14,12 +17,14 @@ def create_user(db:Session, user:UserCreate):
     )
 
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
-def get_users(db: Session):
-    return db.query(User).all()
+async def get_users(db: AsyncSession):
+    result = await db.execute(select(User))
+    return result.scalars().all()
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email==email).first()
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
