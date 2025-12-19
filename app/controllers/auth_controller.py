@@ -4,8 +4,8 @@ from jose import jwt, JWTError
 from dotenv import load_dotenv
 import os
 
-from app.schemas import UserCreate, LoginRequest
-from app.crud import create_user, get_users, get_user_by_email
+from app.schemas import UserCreate, LoginRequest, UserResponse, UserUpdateSchema
+from app.crud import create_user, get_users, get_user_by_email, update_user
 from app.database import get_db
 from app.security import verify_password, create_access_token, create_refresh_token
 from app.dependencies import get_current_user
@@ -82,6 +82,9 @@ class AuthController:
         )
 
         return {"message": "Access token refreshed"}
+    
+
+
 
     
 
