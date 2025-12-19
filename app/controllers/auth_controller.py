@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from dotenv import load_dotenv
 import os
 
-from app.schemas import UserCreate, UserResponse, TokenResponse, LoginRequest
+from app.schemas import UserCreate, LoginRequest
 from app.crud import create_user, get_users, get_user_by_email
 from app.database import get_db
 from app.security import verify_password, create_access_token, create_refresh_token
@@ -18,9 +18,6 @@ ALGORITHM = os.getenv("ALGORITHM")
 
 
 class AuthController:
-    def __init__(self):
-        pass
-
 
     async def register(self, user: UserCreate, db: AsyncSession = Depends(get_db)):
         return await create_user(db, user)
