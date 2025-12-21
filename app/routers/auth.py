@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from fastapi import APIRouter, Path
 from app.schemas import UserResponse, TokenResponse, UserUpdateSchema
-from app.crud import update_user
+from app.crud import update_user, delete_user
 from uuid import UUID
 
 
@@ -17,9 +17,9 @@ router.post("/login", response_model=TokenResponse)(auth.login)
 router.get("/user/me", response_model=UserResponse)(auth.me)
 router.post("/refresh")(auth.refresh)
 
-@router.put("/user-update/{user_id}", response_model=UserResponse)  # Use PATCH, not PUT
-async def update_user_endpoint(
-    user_id: UUID,  # Directly use UUID type → FastAPI validates it automatically
+@router.put("/user-update/{user_id}", response_model=UserResponse)  
+async def UpdateUser(
+    user_id: UUID, 
     user_update: UserUpdateSchema = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
@@ -35,3 +35,7 @@ async def update_user_endpoint(
         )
 
     return await update_user(db, user_id, update_data)
+
+@router.delete('/delete-user/{user_id}')
+async def DeleteUser(user_id: UUID, db: AsyncSession = Depends(get_db)):
+    return await delete_user(db, user_id)

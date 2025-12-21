@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Response
 from uuid import UUID
 
 from app.models import User
@@ -104,27 +104,17 @@ async def update_user(db: AsyncSession, user_id: UUID, update_data: dict):
             detail="An unexpected error occurred"
         )
     
-# async def delete_user(db: AsyncSession, user_id: UUID):
-#     # Fetch user
-#     result = await db.execute(select(User).where(User.id == user_id))
-#     user = result.scalar_one_or_none()
+async def delete_user(db: AsyncSession, user_id: UUID):
 
-#     if not user:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
 
-#     try:
-#         await db.delete()
-#         await db.refresh(user)
-#         return user
-#     except IntegrityError:
-#         await db.rollback()
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Cannot update: username or email already taken"
-#         )
-#     except Exception as e:
-#         await db.rollback()
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="An unexpected error occurred"
-#         )
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    await db.delete(user)
+    await db.commit()
+    return {
+        'message': 'User deleted successfully'
+    }
+        
