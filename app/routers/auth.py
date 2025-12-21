@@ -2,9 +2,10 @@ from app.controllers.auth_controller import AuthController
 from fastapi import APIRouter, Depends,HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from app.schemas import UserResponse, TokenResponse, UserUpdateSchema
 from app.crud import update_user
+from uuid import UUID
 
 
 auth = AuthController()
@@ -16,12 +17,21 @@ router.post("/login", response_model=TokenResponse)(auth.login)
 router.get("/user/me", response_model=UserResponse)(auth.me)
 router.post("/refresh")(auth.refresh)
 
-@router.put("/user-update/{user_id}", response_model=UserResponse)
-async def UserUpdate(user_id: int, user_update: UserUpdateSchema, db: AsyncSession = Depends(get_db)):
-    update_data = user_update.model_dump(exclude_unset=True)
-    updated_user = await update_user(db, user_id, update_data)
+@router.put("/user-update/{user_id}", response_model=UserResponse)  # Use PATCH, not PUT
+async def update_user_endpoint(
+    user_id: UUID,  # Directly use UUID type → FastAPI validates it automatically
+    user_update: UserUpdateSchema = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+    update_data = user_update.model_dump(
+        exclude_unset=True,   # Only fields sent by client
+        exclude_none=True     # Skip fields that became None (including from empty strings)
+    )
 
-    if not updated_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid data provided for update"
+        )
 
-    return updated_user
+    return await update_user(db, user_id, update_data)

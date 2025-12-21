@@ -20,6 +20,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 class AuthController:
 
     async def register(self, user: UserCreate, db: AsyncSession = Depends(get_db)):
+
         return await create_user(db, user)
     
     async def all_users(self, db: AsyncSession = Depends(get_db)):
@@ -82,6 +83,8 @@ class AuthController:
         )
 
         return {"message": "Access token refreshed"}
+    
+    
     
 
 
