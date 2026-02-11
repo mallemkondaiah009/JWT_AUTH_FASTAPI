@@ -70,3 +70,57 @@ async def UserLogin(user: LoginRequest, response: Response, db: AsyncSession = D
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+# ---------------- CURRENT USER ----------------
+@router.get('/user-profile', response_model=UserResponse)
+async def AuthUser(current_user = Depends(get_current_user)):
+    return current_user
+
+# ---------------- REFRESH TOKEN ----------------
+@router.post("/token/refresh", response_model=LoginResponse)
+async def AccessTokenRefresh(request: Request, response: Response):
+    token = request.cookies.get("refresh_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token found")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+
+        id = payload.get("sub")
+
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    new_access_token = create_access_token({"sub": str(id)})
+
+    return {
+        'access_token': new_access_token,
+        'token_type': 'bearer'
+    }
+
+@router.patch('/user-update', response_model=UserResponse)
+async def UserUpdate(
+    user_update: UserUpdateSchema,
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    update_data = user_update.model_dump(
+        exclude_unset=True,
+        exclude_none=True
+    )
+
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No fields provided to update"
+        )
+    
+    return await update_user(db, current_user.id, update_data)
+    
+
+
+
