@@ -69,6 +69,10 @@ async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
 
+async def get_user_by_id(db: AsyncSession, id: str):
+    result = await db.execute(select(User).where(User.id == id))
+    return result.scalar_one_or_none()
+
 async def update_user(db: AsyncSession, user_id: UUID, update_data: dict):
     # Fetch user
     result = await db.execute(select(User).where(User.id == user_id))
