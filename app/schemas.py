@@ -1,22 +1,21 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
 class UserCreate(BaseModel):
-    username: str
+    username: str = Field(..., max_length=50)
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=10, min_length=6)
 
 class UserResponse(BaseModel):
-    id: UUID  # Changed from int to UUID
+    id: UUID
     username: str
     email: EmailStr
     is_active: bool
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 class LoginRequest(BaseModel):
     email: EmailStr

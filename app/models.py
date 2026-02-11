@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 def uuid_gen():
-    return uuid.uuid4()  # Return UUID object, not string
+    return uuid.uuid4()  #It Return UUID object, not string
 
 class User(Base):
     __tablename__ = "users"
