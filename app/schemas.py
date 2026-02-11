@@ -27,17 +27,8 @@ class LoginResponse(BaseModel):
     token_type: str = 'bearer'
 
 class UserUpdateSchema(BaseModel):
-    username: Optional[str] = None
-    email: Optional[EmailStr] = None
+    username: Optional[str] = Field(None, max_length=50)
+    email: Optional[EmailStr] = Field(None, max_length=50)
 
-
-    @field_validator("username", "email", mode="before")
-    @classmethod
-    def empty_str_to_none(cls, v):
-        if isinstance(v, str) and v.strip() == "":
-            return None
-        return v
-
-    model_config = {
-        "extra": "ignore"  # Ignore unknown fields from client
-    }
+    class Config:
+        from_attributes = True
