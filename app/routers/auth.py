@@ -10,6 +10,7 @@ from app.dependencies import get_current_user
 from app.schemas import (
     UserCreate,
     LoginRequest,
+    LoginResponse,
     UserResponse,
     UserUpdateSchema
 )
@@ -43,4 +44,29 @@ async def UserRegister(user: UserCreate, db: AsyncSession = Depends(get_db)):
 async def GetUsers(db: AsyncSession = Depends(get_db)):
     return await get_users(db)
 
+# ---------------- LOGIN ----------------
+@router.post('/user-login', response_model=LoginResponse)
+async def UserLogin(user: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    db_user = await get_user_by_email(db, user.email)
+    if not db_user or not verify_password(user.password, db_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid email or password'
+        )
     
+    access_token = create_access_token({'sub': str(db_user.id)})
+    refresh_token = create_refresh_token({'sub': str(db_user.id)})
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        path='/',
+        samesite='lax',
+        max_age=7 * 24 * 60 * 60
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
