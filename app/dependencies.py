@@ -1,4 +1,3 @@
-
 from jose import jwt, JWTError, ExpiredSignatureError
 import os
 from fastapi import Depends, HTTPException, status
@@ -27,17 +26,35 @@ async def get_current_user(
         user_id = payload.get("sub")
 
         if not user_id:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
 
     except ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
 
     except JWTError:
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
 
     user = await get_user_by_id(db, user_id)
 
     if not user:
-        raise HTTPException(404, "User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is deactivated. Please activate your account."
+        )
 
     return user
