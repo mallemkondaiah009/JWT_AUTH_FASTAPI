@@ -19,7 +19,7 @@ from app.crud import (
     get_users,
     get_user_by_email,
     update_user,
-    delete_user
+    deactivate_user,
 )
 from app.security import (
     verify_password,
@@ -48,10 +48,17 @@ async def GetUsers(db: AsyncSession = Depends(get_db)):
 @router.post('/user-login', response_model=LoginResponse)
 async def UserLogin(user: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
     db_user = await get_user_by_email(db, user.email)
+    
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid email or password'
+        )
+    
+    if not db_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is deactivated. Please activate your account."
         )
     
     access_token = create_access_token({'sub': str(db_user.id)})
@@ -121,6 +128,8 @@ async def UserUpdate(
     
     return await update_user(db, current_user.id, update_data)
     
-
-
+@router.patch('/user-deactivate', status_code=status.HTTP_204_NO_CONTENT)
+async def DeactivateUser(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await deactivate_user(db, user.id)
+    return {"message": "Account deactivated successfully"}
 
