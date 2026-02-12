@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException, status, Response
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from fastapi import HTTPException, status
 from uuid import UUID
 
 from app.models import User
@@ -85,7 +85,7 @@ async def update_user(db: AsyncSession, user_id: UUID, update_data: dict):
     if not update_data:
         return user  # Nothing to do
 
-    protected_fields = {"id", "password", "created_at", "updated_at"}
+    protected_fields = {"id", "password", "created_at"}
 
     for field, value in update_data.items():
         if hasattr(user, field) and field not in protected_fields:
@@ -108,17 +108,23 @@ async def update_user(db: AsyncSession, user_id: UUID, update_data: dict):
             detail="An unexpected error occurred"
         )
     
-async def delete_user(db: AsyncSession, user_id: UUID):
+async def deactivate_user(db: AsyncSession, user_id: UUID):
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    try:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
 
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    await db.delete(user)
-    await db.commit()
-    return {
-        'message': 'User deleted successfully'
-    }
-        
+        user.is_active = False
+        await db.commit()
+        await db.refresh(user)
+        return user
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'{'An unexpected error occured', {e}}'
+        )
