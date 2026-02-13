@@ -6,13 +6,14 @@ from uuid import UUID
 import os
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, admin_required
 from app.schemas import (
     UserCreate,
     LoginRequest,
     LoginResponse,
     UserResponse,
-    UserUpdateSchema
+    UserUpdateSchema,
+    AdminCreate,
 )
 from app.crud import (
     create_user,
@@ -20,6 +21,7 @@ from app.crud import (
     get_user_by_email,
     update_user,
     deactivate_user,
+    create_admin,
 )
 from app.security import (
     verify_password,
@@ -39,10 +41,6 @@ router = APIRouter(prefix='/api/auth', tags=['Auth'])
 async def UserRegister(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return await create_user(db, user)
 
-# ---------------- ALL USERS ----------------
-@router.get('/users', response_model=list[UserResponse], status_code=200)
-async def GetUsers(db: AsyncSession = Depends(get_db)):
-    return await get_users(db)
 
 # ---------------- LOGIN ----------------
 @router.post('/user-login', response_model=LoginResponse)
@@ -132,4 +130,7 @@ async def UserUpdate(
 async def DeactivateUser(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await deactivate_user(db, user.id)
     return {"message": "Account deactivated successfully"}
+
+
+
 

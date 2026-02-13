@@ -8,6 +8,9 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., max_length=10, min_length=6)
 
+class AdminCreate(UserCreate):
+    pass
+
 class UserResponse(BaseModel):
     id: UUID
     username: str

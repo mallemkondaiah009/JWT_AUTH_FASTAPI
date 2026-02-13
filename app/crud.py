@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from uuid import UUID
 
 from app.models import User
-from app.schemas import UserCreate
+from app.schemas import UserCreate, AdminCreate
 from app.security import hash_password
 
 
@@ -128,3 +128,53 @@ async def deactivate_user(db: AsyncSession, user_id: UUID):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f'{'An unexpected error occured', {e}}'
         )
+
+
+async def create_admin(db: AsyncSession, admin: AdminCreate):
+    # Check email
+    email_query = select(User).where(User.email == admin.email)
+    email_result = await db.execute(email_query)
+    if email_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already exists"
+        )
+
+    # Check username
+    username_query = select(User).where(User.username == admin.username)
+    username_result = await db.execute(username_query)
+    if username_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists"
+        )
+
+    hashed_pwd = hash_password(admin.password)
+
+    new_admin = User(
+        username=admin.username,
+        email=admin.email,
+        password=hashed_pwd,
+        role="admin"   # enforced here (not from client)
+    )
+
+    try:
+        db.add(new_admin)
+        await db.commit()
+        await db.refresh(new_admin)
+        return new_admin
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin creation failed (constraint error)"
+        )
+
+    except Exception:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+

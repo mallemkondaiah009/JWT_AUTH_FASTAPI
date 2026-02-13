@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from app.database import engine
 from app import models
-from app.routers import auth
+from app.routers import auth, admin_auth
 from app.exceptions import (
     http_exception_handler,
     validation_exception_handler,
@@ -21,6 +21,8 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 # Routes
 app.include_router(auth.router)
+#Admin Routes
+app.include_router(admin_auth.router)
 
 @app.get("/")
 def root():
