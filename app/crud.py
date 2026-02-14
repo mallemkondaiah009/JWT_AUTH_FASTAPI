@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import HTTPException, status
 from uuid import UUID
 
 from app.models import User
 from app.schemas import UserCreate, AdminCreate
-from app.security import hash_password
+from app.security import hash_password, verify_password
 
 
 
@@ -108,26 +108,35 @@ async def update_user(db: AsyncSession, user_id: UUID, update_data: dict):
             detail="An unexpected error occurred"
         )
     
-async def deactivate_user(db: AsyncSession, user_id: UUID):
+async def deactivate_user(db: AsyncSession, user_id: UUID, password: str):
 
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+        # 🔐 Check password
+    if not verify_password(password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
     try:
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
         user.is_active = False
         await db.commit()
-        await db.refresh(user)
-        return user
 
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'{'An unexpected error occured', {e}}'
+            detail=f"Unexpected error occurred: {e}"
         )
+
 
 
 async def create_admin(db: AsyncSession, admin: AdminCreate):
@@ -177,4 +186,39 @@ async def create_admin(db: AsyncSession, admin: AdminCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"
         )
+    
+
+async def delete_user(db: AsyncSession, user_id: str):
+    
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    try:
+        await db.delete(user)
+        await db.commit()
+
+        return {"message": "User deleted successfully"}
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Delete failed due to constraint error"
+        )
+
+    except Exception:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+
 
