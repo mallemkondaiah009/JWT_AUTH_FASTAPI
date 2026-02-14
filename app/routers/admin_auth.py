@@ -4,17 +4,19 @@ from uuid import UUID
 
 
 from app.database import get_db
-from app.dependencies import get_current_user, admin_required
+from app.dependencies import admin_required
 from app.schemas import (
     AdminCreate,
     UserCreate,
+    AdminUserUpdate,
+    AdminUserResponse
 )
 from app.crud import (
     create_admin,
     get_users,
     get_user_by_id,
     update_user,
-    deactivate_user,
+    delete_user,
     create_user,
 )
 
@@ -30,12 +32,12 @@ async def create_admin_user( data: AdminCreate, db: AsyncSession = Depends(get_d
     }
 
 
-@router.get("/users", status_code=200)
+@router.get("/users", response_model= list[AdminUserResponse], status_code=200)
 async def list_users(db: AsyncSession = Depends(get_db),admin=Depends(admin_required)):
     return await get_users(db)
 
 @router.get("/users/{user_id}")
-async def get_users(
+async def get_user_with_id(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     admin=Depends(admin_required)
@@ -63,20 +65,21 @@ async def admin_post_user(
         "created_at":user.created_at
     }
 
-@router.patch("/users/{user_id}")
+@router.patch("/users/{user_id}", response_model=AdminUserResponse)
 async def admin_update_user(
     user_id: UUID,
-    update_data: dict,
+    update_data: AdminUserUpdate,
     db: AsyncSession = Depends(get_db),
     admin=Depends(admin_required)
 ):
-    return await update_user(db, user_id, update_data)
+    data = update_data.model_dump(exclude_unset=True)
+    return await update_user(db, user_id, data)
 
-
-@router.delete("/users/{user_id}")
-async def admin_deactivate_user(
-    user_id: UUID,
+@router.delete("/users/{user_id}", status_code=200)
+async def admin_delete_user(
+    user_id: str,
     db: AsyncSession = Depends(get_db),
     admin=Depends(admin_required)
 ):
-    return await deactivate_user(db, user_id)
+    return await delete_user(db, user_id)
+
