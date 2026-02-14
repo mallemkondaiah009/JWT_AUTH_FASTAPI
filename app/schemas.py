@@ -35,3 +35,27 @@ class UserUpdateSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AdminUserResponse(BaseModel):
+    id: UUID
+    username: str
+    email: str
+    password: str
+    role: str
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class DeactivateRequest(BaseModel):
+    password: str
+
+class AdminUserUpdate(BaseModel):
+    username: Optional[str] = Field(None, max_length=50)
+    email: Optional[EmailStr] = None
+    role: Optional[str] = Field(None, max_length=10)
+    is_active: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
