@@ -13,15 +13,13 @@ from app.schemas import (
     LoginResponse,
     UserResponse,
     UserUpdateSchema,
-    AdminCreate,
+    DeactivateRequest,
 )
 from app.crud import (
     create_user,
-    get_users,
     get_user_by_email,
     update_user,
     deactivate_user,
-    create_admin,
 )
 from app.security import (
     verify_password,
@@ -127,9 +125,14 @@ async def UserUpdate(
     return await update_user(db, current_user.id, update_data)
     
 @router.patch('/user-deactivate', status_code=status.HTTP_204_NO_CONTENT)
-async def DeactivateUser(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    await deactivate_user(db, user.id)
+async def deactivate_user_account(
+    data: DeactivateRequest,
+    user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    await deactivate_user(db, user.id, data.password)
     return {"message": "Account deactivated successfully"}
+
 
 
 
